@@ -11,7 +11,7 @@ import (
 	"net/url"
 )
 
-type joinCompleted struct {
+type JoinCompleted struct {
 	Msg     string     `json:"msg"`
 	EventId string     `json:"event_id"`
 	Success bool       `json:"success"`
@@ -28,7 +28,7 @@ type joinOutput struct {
 
 type Client struct {
 	bu      *url.URL
-	funcMap map[string]func(j joinCompleted, data []byte) map[string]interface{}
+	funcMap map[string]func(j JoinCompleted, data []byte) map[string]interface{}
 }
 
 func New(baseUrl string) (*Client, error) {
@@ -39,7 +39,7 @@ func New(baseUrl string) (*Client, error) {
 
 	client := Client{
 		bu:      bu,
-		funcMap: make(map[string]func(j joinCompleted, data []byte) map[string]interface{}),
+		funcMap: make(map[string]func(j JoinCompleted, data []byte) map[string]interface{}),
 	}
 	return &client, nil
 }
@@ -69,7 +69,7 @@ func (c *Client) Do(ctx context.Context) error {
 				return err
 			}
 
-			var j joinCompleted
+			var j JoinCompleted
 			err = json.Unmarshal(data, &j)
 			if err != nil {
 				return err
@@ -104,7 +104,7 @@ func (c *Client) Do(ctx context.Context) error {
 	}
 }
 
-func (c *Client) Event(eventId string, funcCall func(j joinCompleted, data []byte) map[string]interface{}) {
+func (c *Client) Event(eventId string, funcCall func(j JoinCompleted, data []byte) map[string]interface{}) {
 	c.funcMap[eventId] = funcCall
 }
 

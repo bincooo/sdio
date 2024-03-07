@@ -33,19 +33,19 @@ func TestJoin(t *testing.T) {
 	hash := SessionHash()
 	value := ""
 
-	client.Event("*", func(j joinCompleted, data []byte) map[string]interface{} {
+	client.Event("*", func(j JoinCompleted, data []byte) map[string]interface{} {
 		t.Log(string(data))
 		return nil
 	})
 
-	client.Event("send_hash", func(j joinCompleted, data []byte) map[string]interface{} {
+	client.Event("send_hash", func(j JoinCompleted, data []byte) map[string]interface{} {
 		return map[string]interface{}{
 			"fn_index":     index,
 			"session_hash": hash,
 		}
 	})
 
-	client.Event("send_data", func(j joinCompleted, data []byte) map[string]interface{} {
+	client.Event("send_data", func(j JoinCompleted, data []byte) map[string]interface{} {
 		return map[string]interface{}{
 			"data":         []interface{}{"1girl", 1, 3, -1, ""},
 			"event_data":   nil,
@@ -54,7 +54,7 @@ func TestJoin(t *testing.T) {
 		}
 	})
 
-	client.Event("process_completed", func(j joinCompleted, data []byte) map[string]interface{} {
+	client.Event("process_completed", func(j JoinCompleted, data []byte) map[string]interface{} {
 		d := j.Output.Data
 		if len(d) > 0 {
 			inter, ok := d[0].([]interface{})
