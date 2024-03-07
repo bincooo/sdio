@@ -1,6 +1,8 @@
 package sdio
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -49,6 +51,14 @@ func (c *Client) Do(ctx context.Context) error {
 		panic("base url is nil")
 	}
 
+	if c.bu.Scheme == "ws" || c.bu.Scheme == "wss" {
+		return doConn(ctx, c)
+	} else {
+		return doReq(ctx, c)
+	}
+}
+
+func doConn(ctx context.Context, c *Client) error {
 	var conn *websocket.Conn
 	{
 		nc, err := newConn(c.bu)
@@ -104,8 +114,80 @@ func (c *Client) Do(ctx context.Context) error {
 	}
 }
 
+func doReq(ctx context.Context, c *Client) error {
+	var response *http.Response
+	{
+		res, err := newReq(c.bu)
+		if err != nil {
+			return err
+		}
+		response = res
+	}
+
+	var data []byte
+	before := []byte("data: ")
+	reader := bufio.NewReader(response.Body)
+
+	for {
+		select {
+		case <-ctx.Done():
+			return errors.New("done")
+
+		default:
+			line, prefix, err := reader.ReadLine()
+			if err != nil {
+				return err
+			}
+
+			data = append(data, line...)
+			if prefix {
+				continue
+			}
+
+			if !bytes.HasPrefix(data, before) {
+				data = nil
+				continue
+			}
+			data = bytes.TrimPrefix(data, before)
+
+			var j JoinCompleted
+			err = json.Unmarshal(data, &j)
+			if err != nil {
+				return err
+			}
+			data = nil
+
+			if funcCall, ok := c.funcMap[j.Msg]; ok {
+				funcCall(j, data)
+			}
+
+			if funcCall, ok := c.funcMap["*"]; ok {
+				funcCall(j, data)
+			}
+
+			if j.Success && j.Msg == "process_completed" {
+				return nil
+			}
+		}
+	}
+}
+
 func (c *Client) Event(eventId string, funcCall func(j JoinCompleted, data []byte) map[string]interface{}) {
 	c.funcMap[eventId] = funcCall
+}
+
+func newReq(bu *url.URL) (*http.Response, error) {
+	base := baseUrl(bu)
+	response, err := http.DefaultClient.Get(base)
+	if err != nil {
+		return nil, err
+	}
+
+	if response.StatusCode != http.StatusOK {
+		return nil, errors.New(response.Status)
+	}
+
+	return response, nil
 }
 
 func newConn(bu *url.URL) (*websocket.Conn, error) {
@@ -123,15 +205,15 @@ func newConn(bu *url.URL) (*websocket.Conn, error) {
 }
 
 func baseUrl(bu *url.URL) string {
-	h := ""
-	switch bu.Scheme {
-	case "http":
-		h = "ws"
-	default:
-		h = "wss"
-	}
+	//h := ""
+	//switch bu.Scheme {
+	//case "http":
+	//	h = "ws"
+	//default:
+	//	h = "wss"
+	//}
 
-	return fmt.Sprintf("%s://%s%s/queue/join", h, bu.Host, bu.Path)
+	return fmt.Sprintf("%s://%s%s/queue/join?%s", bu.Scheme, bu.Host, bu.Path, bu.RawQuery)
 }
 
 func SessionHash() string {
