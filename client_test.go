@@ -146,3 +146,13 @@ func TestJoin2(t *testing.T) {
 
 	t.Log(fmt.Sprintf("%s/file=%s", base, value))
 }
+
+func TestHD(t *testing.T) {
+	key := "xxx"
+	url := "https://prodia-fast-stable-diffusion.hf.space/--replicas/kh9ul/file=/tmp/gradio/89b09665f21af786d3411a6707fdb3429741d766/18ba369e-4577-4ffb-b75e-1cf616b75566.png"
+	jpg, err := HD(context.Background(), url, key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log(jpg)
+}
