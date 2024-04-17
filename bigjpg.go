@@ -11,11 +11,23 @@ import (
 
 const baseURL = "https://bigjpg.com/api/task/"
 
-func Magnify(ctx context.Context, url, key string) (string, error) {
+// 图片放大api, 一个key每月有30次使用机会
+//
+//	url: 原图url
+//	key: api-key
+//	style: 参数有 'art', 'photo' 分别表示 '卡通插画', '照片'
+//	x2: 参数有 '1', '2', '3', '4' 分别表示 2x, 4x, 8x, 16x
+func Magnify(ctx context.Context, url, key, style, x2 string) (string, error) {
+	if style == "" {
+		style = "art"
+	}
+	if x2 == "" {
+		x2 = "1"
+	}
 	payload := map[string]interface{}{
-		"style": "art",
+		"style": style,
 		"noise": "3",
-		"x2":    "1",
+		"x2":    x2,
 		"input": url,
 	}
 
